@@ -80,11 +80,10 @@ fn expr(input: &str) -> IResult<&str, Expr> {
 /////////////
 
 fn assign(input: &str) -> IResult<&str, Statement> {
-    let (input, p) = opt(keyword("pub"))(input)?;
     let (input, x) = var_owned(input)?;
     let (input, ()) = sym("=")(input)?;
     let (input, e) = cut(expr)(input)?;
-    let res = Statement::Assign(p.is_some(), x, e);
+    let res = Statement::Assign(x, e);
     Ok((input, res))
 }
 
@@ -108,31 +107,19 @@ fn arg(input: &str) -> IResult<&str, (String,Type)> {
     separated_pair(var_owned, sym(":"), typ)(input)
 }
 
-fn space(input: &str) -> IResult<&str, Block> {
+fn fun(input: &str) -> IResult<&str, Block> {
+    let (input, name) = var_owned(input)?;
     let (input, ()) = sym("(")(input)?;
     let (input, args) = separated_list0(sym(","), arg)(input)?;
     let (input, ()) = sym(")")(input)?;
     let (input, ()) = sym("{")(input)?;
     let (input, stmts) = many0(statement)(input)?;
     let (input, ()) = sym("}")(input)?;
-    Ok((input, Block::Space(args, stmts)))
-}
-
-fn fun(input: &str) -> IResult<&str, Block> {
-    let (input, name) = var_owned(input)?;
-    let (input, ()) = sym("(")(input)?;
-    let (input, ()) = sym(")")(input)?;
-    let (input, ()) = sym("{")(input)?;
-    let (input, stmts) = many0(statement)(input)?;
-    let (input, ()) = sym("}")(input)?;
-    Ok((input, Block::Fun(name, stmts)))
+    Ok((input, Block::Fun(name, args, stmts)))
 }
 
 fn block(input: &str) -> IResult<&str, Block> {
-    alt((
-        preceded(keyword("fn"), cut(fun)),
-        preceded(keyword("space"), cut(space))
-    ))(input)
+    preceded(keyword("fn"), cut(fun))(input)
 }
 
 

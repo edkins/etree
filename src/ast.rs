@@ -2,7 +2,7 @@ use bigdecimal::BigDecimal;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Statement {
-    Assign(bool, String, Expr),
+    Assign(String, Expr),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,8 +21,7 @@ pub enum Type {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Block {
-    Fun(String, Vec<Statement>),
-    Space(Vec<(String,Type)>, Vec<Statement>),
+    Fun(String, Vec<(String,Type)>, Vec<Statement>),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
