@@ -1,5 +1,6 @@
-space(x: float, y: float) {
-    pub r = x;
-    pub g = y;
-    pub b = x + y;
+fn main() {
+    x = 'x;
+    y = 'y;
+
+    rgb = rgb(x, y, x+y);
 }

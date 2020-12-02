@@ -50,9 +50,20 @@ fn str_to_numexpr(s: &str) -> anyhow::Result<Expr> {
     Ok(Expr::Num(BigDecimal::from_str_radix(s,10)?))
 }
 
+fn call(input: &str) -> IResult<&str, Expr> {
+    let (input, f) = var_owned(input)?;
+    let (input, _) = sym("(")(input)?;
+    let (input, args) = cut(separated_list0(sym(","), expr))(input)?;
+    let (input, _) = sym(")")(input)?;
+    let res = Expr::Call(f, args);
+    Ok((input, res))
+}
+
 fn atom(input: &str) -> IResult<&str, Expr> {
     alt((
+        call,
         map_res(decimal, str_to_numexpr),
+        map(preceded(tag("'"), cut(var_owned)), Expr::FreeVar),
         map(var_owned, Expr::Var),
     ))(input)
 }
@@ -78,7 +89,7 @@ fn assign(input: &str) -> IResult<&str, Statement> {
 }
 
 fn statement(input: &str) -> IResult<&str, Statement> {
-    terminated(assign, sym(";"))(input)
+    terminated(assign, cut(sym(";")))(input)
 }
 
 /////////////
@@ -98,7 +109,6 @@ fn arg(input: &str) -> IResult<&str, (String,Type)> {
 }
 
 fn space(input: &str) -> IResult<&str, Block> {
-    let (input, ()) = keyword("space")(input)?;
     let (input, ()) = sym("(")(input)?;
     let (input, args) = separated_list0(sym(","), arg)(input)?;
     let (input, ()) = sym(")")(input)?;
@@ -108,8 +118,21 @@ fn space(input: &str) -> IResult<&str, Block> {
     Ok((input, Block::Space(args, stmts)))
 }
 
+fn fun(input: &str) -> IResult<&str, Block> {
+    let (input, name) = var_owned(input)?;
+    let (input, ()) = sym("(")(input)?;
+    let (input, ()) = sym(")")(input)?;
+    let (input, ()) = sym("{")(input)?;
+    let (input, stmts) = many0(statement)(input)?;
+    let (input, ()) = sym("}")(input)?;
+    Ok((input, Block::Fun(name, stmts)))
+}
+
 fn block(input: &str) -> IResult<&str, Block> {
-    space(input)
+    alt((
+        preceded(keyword("fn"), cut(fun)),
+        preceded(keyword("space"), cut(space))
+    ))(input)
 }
 
 
@@ -123,7 +146,10 @@ pub fn program(input: &str) -> anyhow::Result<Program> {
         Err(nom::Err::Incomplete(_)) => bail!("Incomplete"),
         Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
             let lines:Vec<_> = input[..input.len() - e.input.len()].lines().collect();
-            bail!("Parse error on line {} char {}: {:?}", lines.len(), lines[lines.len()-1].len(), e.code);
+            if lines.len() == 0 {
+                bail!("Parse error at start: {:?}", e.code);
+            }
+            bail!("Parse error on line {} char {}: {:?}", lines.len(), lines[lines.len()-1].len()+1, e.code);
         }
     }
 }
