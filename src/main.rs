@@ -1,5 +1,20 @@
 use clap::clap_app;
-use log::warn;
+use std::fs;
+
+mod ast;
+mod parse;
+
+fn run(input: &str, output: Option<&str>) -> anyhow::Result<()> {
+    let text = fs::read_to_string(input)?;
+    let ast = parse::program(&text)?;
+    let textout = format!("{:?}", ast);
+    if let Some(output) = output {
+        fs::write(output, textout)?;
+    } else {
+        print!("{}", textout);
+    }
+    Ok(())
+}
 
 fn main() -> anyhow::Result<()> {
     let m = clap_app!(etree =>
@@ -8,10 +23,14 @@ fn main() -> anyhow::Result<()> {
         (about: "Processes expression tree language")
         (@arg verbosity: -v ... "Increases message verbosity")
         (@arg quiet: -q "Silence all messages")
+        (@arg INPUT: +required "Input file")
+        (@arg OUTPUT: -o  +takes_value "Output file")
     ).get_matches();
 
     let verbosity = m.occurrences_of("verbosity") as usize;
     let quiet = m.is_present("quiet");
+    let input = m.value_of("INPUT").unwrap();
+    let output = m.value_of("OUTPUT");
 
     stderrlog::new()
         .module(module_path!())
@@ -19,6 +38,5 @@ fn main() -> anyhow::Result<()> {
         .verbosity(verbosity)
         .init()?;
 
-    warn!("Hello");
-    Ok(())
+    run(input, output)
 }
