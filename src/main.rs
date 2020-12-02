@@ -2,12 +2,14 @@ use clap::clap_app;
 use std::fs;
 
 mod ast;
+mod eval;
 mod parse;
 
 fn run(input: &str, output: Option<&str>) -> anyhow::Result<()> {
     let text = fs::read_to_string(input)?;
     let ast = parse::program(&text)?;
-    let textout = format!("{:?}", ast);
+    ast.run()?;
+    let textout = String::new();
     if let Some(output) = output {
         fs::write(output, textout)?;
     } else {

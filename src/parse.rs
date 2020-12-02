@@ -71,7 +71,7 @@ fn atom(input: &str) -> IResult<&str, Expr> {
 fn expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = atom(input)?;
     let (input, rest) = many0(preceded(sym("+"), atom))(input)?;
-    let res = rest.into_iter().fold(first, |a,b|Expr::Plus(Box::new(a), Box::new(b)));
+    let res = rest.into_iter().fold(first, |a,b|Expr::Call("+".to_owned(), vec![a,b]));
     Ok((input, res))
 }
 
